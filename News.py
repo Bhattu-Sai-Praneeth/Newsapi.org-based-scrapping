@@ -3,8 +3,8 @@ import requests
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
-# Set NewsAPI Key
-NEWSAPI_KEY = "063b1b2696c24c3a867c46c94cf9b810"
+# Set Currents API Key
+CURRENTS_API_KEY = "V0btxM0DnlFKvODuN-JxezbEiEcdxUYgINHk-gFrf2_zQDMk"
 
 # Load FinBERT sentiment model (cached for performance)
 @st.cache_resource
@@ -16,30 +16,29 @@ def load_finbert_model():
 
 sentiment_pipeline = load_finbert_model()
 
-# Fetch latest 10 news articles for a company
+# Fetch latest 10 news articles for a company using Currents API
 def fetch_company_news(company_name):
-    url = "https://newsapi.org/v2/everything"
+    url = "https://api.currentsapi.services/v1/search"
     params = {
-        "q": company_name,
-        "sortBy": "publishedAt",
+        "keywords": company_name,
+        "limit": 10,        # Fetch the latest 10 articles
         "language": "en",
-        "pageSize": 10,  # Get latest 10 articles
-        "apiKey": NEWSAPI_KEY
+        "apiKey": CURRENTS_API_KEY
     }
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        return data.get("articles", [])
+        return data.get("news", [])
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching news: {e}")
         return []
 
 # Streamlit UI Layout
-st.set_page_config(page_title="Stock News Sentiment Analyzer", layout="wide")
+st.set_page_config(page_title="Stock News Sentiment Analyzer (Currents API)", layout="wide")
 
-st.title("📈 Company News Sentiment Analyzer")
-st.write("Analyze the sentiment of the latest news articles for any company.")
+st.title("📈 Company News Sentiment Analyzer (Currents API)")
+st.write("Analyze the sentiment of the latest news articles for any company using Currents API.")
 
 # User input for company name
 company_name = st.text_input("Enter Company Name (e.g., Apple Inc., Tesla, Microsoft)", value="Apple Inc.")
@@ -70,7 +69,12 @@ if st.button("Analyze News Sentiment"):
                     sentiment = "Error"
             
             # Store results
-            results.append({"Title": title, "URL": url, "Description": description, "Sentiment": sentiment})
+            results.append({
+                "Title": title,
+                "URL": url,
+                "Description": description,
+                "Sentiment": sentiment
+            })
         
         # Display Results with Clickable Links
         st.subheader("📜 Latest News & Sentiment")
@@ -81,6 +85,7 @@ if st.button("Analyze News Sentiment"):
             st.write("---")
 
         # Display Sentiment Distribution Chart
-        sentiment_counts = pd.DataFrame([news["Sentiment"] for news in results], columns=["Sentiment"]).value_counts()
+        sentiment_series = pd.Series([news["Sentiment"] for news in results], name="Sentiment")
+        sentiment_counts = sentiment_series.value_counts()
         st.subheader("📊 Sentiment Distribution")
         st.bar_chart(sentiment_counts)
