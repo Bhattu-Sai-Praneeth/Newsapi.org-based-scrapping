@@ -71,10 +71,12 @@ if st.button("Analyze News Sentiment"):
                     st.error(f"Sentiment analysis error: {e}")
                     sentiment = "Error"
             
+            # Create clickable hyperlink for news title
+            clickable_title = f"[{title}]({url})"
+            
             results.append({
-                "Title": title,
+                "News Title": clickable_title,
                 "Description": description,
-                "URL": url,
                 "Sentiment": sentiment
             })
         
@@ -83,12 +85,10 @@ if st.button("Analyze News Sentiment"):
 
         # Display News Table
         st.subheader("📜 Latest News & Sentiment")
-        st.dataframe(df.style.applymap(
-            lambda x: "background-color: #d4edda" if x == "positive" else 
-                      "background-color: #f8d7da" if x == "negative" else 
-                      "background-color: #fff3cd" if x == "neutral" else "",
-            subset=["Sentiment"]
-        ))
+        st.write(
+            df.to_markdown(index=False),
+            unsafe_allow_html=True
+        )
 
         # Display Sentiment Distribution Chart
         sentiment_counts = df["Sentiment"].value_counts()
