@@ -3,6 +3,9 @@ import requests
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
+# Set Streamlit page configuration (MUST be the first command)
+st.set_page_config(page_title="Stock News Sentiment Analyzer (Currents API)", layout="wide")
+
 # Set Currents API Key
 CURRENTS_API_KEY = "V0btxM0DnlFKvODuN-JxezbEiEcdxUYgINHk-gFrf2_zQDMk"
 
@@ -33,9 +36,6 @@ def fetch_company_news(company_name):
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching news: {e}")
         return []
-
-# Streamlit UI Layout
-st.set_page_config(page_title="Stock News Sentiment Analyzer (Currents API)", layout="wide")
 
 st.title("📈 Company News Sentiment Analyzer (Currents API)")
 st.write("Analyze the sentiment of the latest news articles for any company using Currents API.")
