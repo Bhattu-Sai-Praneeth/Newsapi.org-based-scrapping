@@ -83,13 +83,10 @@ if st.button("Analyze News Sentiment"):
         # Convert results to DataFrame
         df = pd.DataFrame(results)
 
-        # Display News Table
+        # Display News Table with clickable links
         st.subheader("📜 Latest News & Sentiment")
-        st.write(
-            df.to_markdown(index=False),
-            unsafe_allow_html=True
-        )
-
+        st.dataframe(df)  # Fixed: Using st.dataframe() instead of markdown
+       
         # Display Sentiment Distribution Chart
         sentiment_counts = df["Sentiment"].value_counts()
         st.subheader("📊 Sentiment Distribution")
