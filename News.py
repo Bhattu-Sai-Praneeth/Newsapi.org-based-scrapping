@@ -54,14 +54,12 @@ if st.button("Analyze News Sentiment"):
 
         results = []
         for article in articles:
-            title = article.get("title", "")
-            description = article.get("description", "")
-            url = article.get("url", "")
+            title = article.get("title", "No Title")
+            description = article.get("description", "No Description")
+            url = article.get("url", "#")
             
-            # Combine title + description for sentiment analysis
+            # Perform sentiment analysis
             text_to_analyze = f"{title}. {description}".strip()
-            
-            # Perform sentiment analysis if there is valid text
             sentiment = "N/A"
             if text_to_analyze and text_to_analyze != ".":
                 try:
@@ -71,23 +69,18 @@ if st.button("Analyze News Sentiment"):
                     st.error(f"Sentiment analysis error: {e}")
                     sentiment = "Error"
             
-            # Create clickable hyperlink for news title
-            clickable_title = f"[{title}]({url})"
-            
-            results.append({
-                "News Title": clickable_title,
-                "Description": description,
-                "Sentiment": sentiment
-            })
+            # Store results
+            results.append({"Title": title, "URL": url, "Description": description, "Sentiment": sentiment})
         
-        # Convert results to DataFrame
-        df = pd.DataFrame(results)
-
-        # Display News Table with clickable links
+        # Display Results with Clickable Links
         st.subheader("📜 Latest News & Sentiment")
-        st.dataframe(df)  # Fixed: Using st.dataframe() instead of markdown
-       
+        for news in results:
+            st.markdown(f"### [{news['Title']}]({news['URL']})")
+            st.write(f"**Sentiment:** {news['Sentiment']}")
+            st.write(f"*{news['Description']}*")
+            st.write("---")
+
         # Display Sentiment Distribution Chart
-        sentiment_counts = df["Sentiment"].value_counts()
+        sentiment_counts = pd.DataFrame([news["Sentiment"] for news in results], columns=["Sentiment"]).value_counts()
         st.subheader("📊 Sentiment Distribution")
         st.bar_chart(sentiment_counts)
