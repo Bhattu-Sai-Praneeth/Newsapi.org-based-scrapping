@@ -3,73 +3,73 @@ import requests
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
-# Set your NewsAPI key
+# Set NewsAPI Key
 NEWSAPI_KEY = "063b1b2696c24c3a867c46c94cf9b810"
 
-# Load FinBERT sentiment analysis model (caching for performance)
+# Load FinBERT sentiment model (cached for performance)
 @st.cache_resource
-def load_sentiment_model():
+def load_finbert_model():
     tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
     model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
     sentiment_pipeline = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
     return sentiment_pipeline
 
-sentiment_pipeline = load_sentiment_model()
+sentiment_pipeline = load_finbert_model()
 
-# Function to fetch the latest 10 news articles
-def fetch_news(company_query):
+# Fetch latest 10 news articles for a stock ticker
+def fetch_stock_news(ticker):
     url = "https://newsapi.org/v2/everything"
     params = {
-        "q": company_query,
+        "q": ticker,
         "sortBy": "publishedAt",
         "language": "en",
-        "pageSize": 10,  # Limit results to latest 10 articles
+        "pageSize": 10,  # Get latest 10 articles
         "apiKey": NEWSAPI_KEY
     }
     try:
         response = requests.get(url, params=params)
-        response.raise_for_status()  # Raise error for bad responses
+        response.raise_for_status()
         data = response.json()
         return data.get("articles", [])
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching news: {e}")
         return []
 
-# Streamlit app layout
-st.title("News Sentiment Analysis with FinBERT")
-st.write("Enter a company ticker or name to fetch the latest 10 news articles and analyze their sentiment.")
+# Streamlit UI Layout
+st.set_page_config(page_title="Stock News Sentiment Analyzer", layout="wide")
 
-# Input field for company ticker/name
-company_input = st.text_input("Company Ticker/Name", value="AAPL")
+st.title("📈 Stock News Sentiment Analyzer")
+st.write("Analyze the sentiment of the latest news articles for a given stock ticker.")
 
-if st.button("Fetch News and Analyze Sentiment"):
-    articles = fetch_news(company_input)
-    
+# User input for stock ticker
+ticker = st.text_input("Enter Stock Ticker (e.g., AAPL, TSLA, MSFT)", value="AAPL").upper()
+
+if st.button("Analyze News Sentiment"):
+    articles = fetch_stock_news(ticker)
+
     if not articles:
-        st.warning("No articles found.")
+        st.warning("No recent news found for this stock.")
     else:
-        st.success(f"Fetched {len(articles)} latest articles.")
-        
-        # Prepare a list to hold article info and sentiments
+        st.success(f"Fetched {len(articles)} latest news articles.")
+
         results = []
         for article in articles:
-            title = article.get("title") or ""
-            description = article.get("description") or ""
-            url = article.get("url") or ""
+            title = article.get("title", "")
+            description = article.get("description", "")
+            url = article.get("url", "")
             
-            # Combine title and description for sentiment analysis
-            text_to_analyze = f"{title}. {description}"
+            # Combine title + description for sentiment analysis
+            text_to_analyze = f"{title}. {description}".strip()
             
-            # Check if there's enough text to analyze
-            if not text_to_analyze.strip() or text_to_analyze.strip() == ".":
-                sentiment = "N/A"
-            else:
+            # Perform sentiment analysis if there is valid text
+            sentiment = "N/A"
+            if text_to_analyze and text_to_analyze != ".":
                 try:
                     result = sentiment_pipeline(text_to_analyze)[0]
-                    sentiment = result["label"]  # Expected: 'positive', 'neutral', or 'negative'
+                    sentiment = result["label"]  # Expected: 'positive', 'neutral', 'negative'
                 except Exception as e:
+                    st.error(f"Sentiment analysis error: {e}")
                     sentiment = "Error"
-                    st.error(f"Sentiment analysis failed for: {title}. Error: {e}")
             
             results.append({
                 "Title": title,
@@ -78,10 +78,19 @@ if st.button("Fetch News and Analyze Sentiment"):
                 "Sentiment": sentiment
             })
         
-        # Create a DataFrame and display the results
+        # Convert results to DataFrame
         df = pd.DataFrame(results)
-        st.write(df)
-        
-        # Display sentiment counts as a bar chart
-        sentiment_counts = df['Sentiment'].value_counts()
+
+        # Display News Table
+        st.subheader("📜 Latest News & Sentiment")
+        st.dataframe(df.style.applymap(
+            lambda x: "background-color: #d4edda" if x == "positive" else 
+                      "background-color: #f8d7da" if x == "negative" else 
+                      "background-color: #fff3cd" if x == "neutral" else "",
+            subset=["Sentiment"]
+        ))
+
+        # Display Sentiment Distribution Chart
+        sentiment_counts = df["Sentiment"].value_counts()
+        st.subheader("📊 Sentiment Distribution")
         st.bar_chart(sentiment_counts)
