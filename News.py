@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipe
 NEWSAPI_KEY = "063b1b2696c24c3a867c46c94cf9b810"
 
 # Load FinBERT sentiment analysis model (caching for performance)
-@st.cache(allow_output_mutation=True)
+@st.cache_resource
 def load_sentiment_model():
     tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
     model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
@@ -16,27 +16,28 @@ def load_sentiment_model():
 
 sentiment_pipeline = load_sentiment_model()
 
-# Function to fetch news articles from NewsAPI.org for a given company query
+# Function to fetch the latest 10 news articles
 def fetch_news(company_query):
     url = "https://newsapi.org/v2/everything"
     params = {
         "q": company_query,
         "sortBy": "publishedAt",
         "language": "en",
+        "pageSize": 10,  # Limit results to latest 10 articles
         "apiKey": NEWSAPI_KEY
     }
     try:
         response = requests.get(url, params=params)
-        response.raise_for_status()  # Raises an HTTPError for bad responses
+        response.raise_for_status()  # Raise error for bad responses
+        data = response.json()
+        return data.get("articles", [])
     except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching news articles: {e}")
+        st.error(f"Error fetching news: {e}")
         return []
-    data = response.json()
-    return data.get("articles", [])
 
 # Streamlit app layout
 st.title("News Sentiment Analysis with FinBERT")
-st.write("Enter a company ticker or name to fetch recent news and analyze their sentiment.")
+st.write("Enter a company ticker or name to fetch the latest 10 news articles and analyze their sentiment.")
 
 # Input field for company ticker/name
 company_input = st.text_input("Company Ticker/Name", value="AAPL")
@@ -47,12 +48,11 @@ if st.button("Fetch News and Analyze Sentiment"):
     if not articles:
         st.warning("No articles found.")
     else:
-        st.success(f"Fetched {len(articles)} articles.")
+        st.success(f"Fetched {len(articles)} latest articles.")
         
         # Prepare a list to hold article info and sentiments
         results = []
         for article in articles:
-            # Use default empty string if any field is None
             title = article.get("title") or ""
             description = article.get("description") or ""
             url = article.get("url") or ""
@@ -69,7 +69,7 @@ if st.button("Fetch News and Analyze Sentiment"):
                     sentiment = result["label"]  # Expected: 'positive', 'neutral', or 'negative'
                 except Exception as e:
                     sentiment = "Error"
-                    st.error(f"Sentiment analysis failed for article: {title}. Error: {e}")
+                    st.error(f"Sentiment analysis failed for: {title}. Error: {e}")
             
             results.append({
                 "Title": title,
