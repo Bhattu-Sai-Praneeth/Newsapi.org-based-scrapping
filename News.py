@@ -122,8 +122,12 @@ def fetch_and_analyze_news(company, method="VADER", use_newsapi=False, aggregate
     analyzed_news = []
 
     for headline, link in news_sources:
-        sentiment = analyze_sentiment(headline, method)
+        sentiment = analyze_sentiment(headline, method).capitalize()  # Ensure uniform sentiment labels
         analyzed_news.append((headline, sentiment, link))
+        
+        if sentiment not in ["Positive", "Negative", "Neutral"]:  
+            sentiment = "Neutral"  # Handle unexpected sentiment values
+        
         if sentiment == "Positive":
             pos += 1
         elif sentiment == "Negative":
