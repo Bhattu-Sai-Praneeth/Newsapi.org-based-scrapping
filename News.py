@@ -16,11 +16,11 @@ def load_finbert_model():
 
 sentiment_pipeline = load_finbert_model()
 
-# Fetch latest 10 news articles for a stock ticker
-def fetch_stock_news(ticker):
+# Fetch latest 10 news articles for a company
+def fetch_company_news(company_name):
     url = "https://newsapi.org/v2/everything"
     params = {
-        "q": ticker,
+        "q": company_name,
         "sortBy": "publishedAt",
         "language": "en",
         "pageSize": 10,  # Get latest 10 articles
@@ -38,17 +38,17 @@ def fetch_stock_news(ticker):
 # Streamlit UI Layout
 st.set_page_config(page_title="Stock News Sentiment Analyzer", layout="wide")
 
-st.title("📈 Stock News Sentiment Analyzer")
-st.write("Analyze the sentiment of the latest news articles for a given stock ticker.")
+st.title("📈 Company News Sentiment Analyzer")
+st.write("Analyze the sentiment of the latest news articles for any company.")
 
-# User input for stock ticker
-ticker = st.text_input("Enter Stock Ticker (e.g., AAPL, TSLA, MSFT)", value="AAPL").upper()
+# User input for company name
+company_name = st.text_input("Enter Company Name (e.g., Apple Inc., Tesla, Microsoft)", value="Apple Inc.")
 
 if st.button("Analyze News Sentiment"):
-    articles = fetch_stock_news(ticker)
+    articles = fetch_company_news(company_name)
 
     if not articles:
-        st.warning("No recent news found for this stock.")
+        st.warning("No recent news found for this company.")
     else:
         st.success(f"Fetched {len(articles)} latest news articles.")
 
