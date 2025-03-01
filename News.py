@@ -3,10 +3,10 @@ import requests
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
-# Set your NewsAPI key (replace with your own key if needed)
+# Set your NewsAPI key
 NEWSAPI_KEY = "063b1b2696c24c3a867c46c94cf9b810"
 
-# Function to load FinBERT sentiment analysis model (caching for performance)
+# Load FinBERT sentiment analysis model (caching for performance)
 @st.cache(allow_output_mutation=True)
 def load_sentiment_model():
     tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
@@ -25,9 +25,11 @@ def fetch_news(company_query):
         "language": "en",
         "apiKey": NEWSAPI_KEY
     }
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
-        st.error("Error fetching news articles.")
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching news articles: {e}")
         return []
     data = response.json()
     return data.get("articles", [])
@@ -50,18 +52,24 @@ if st.button("Fetch News and Analyze Sentiment"):
         # Prepare a list to hold article info and sentiments
         results = []
         for article in articles:
-            title = article.get("title", "")
-            description = article.get("description", "")
-            url = article.get("url", "")
+            # Use default empty string if any field is None
+            title = article.get("title") or ""
+            description = article.get("description") or ""
+            url = article.get("url") or ""
             
             # Combine title and description for sentiment analysis
             text_to_analyze = f"{title}. {description}"
-            # Check if there is enough text to analyze
-            if text_to_analyze.strip() == ".":
+            
+            # Check if there's enough text to analyze
+            if not text_to_analyze.strip() or text_to_analyze.strip() == ".":
                 sentiment = "N/A"
             else:
-                result = sentiment_pipeline(text_to_analyze)[0]
-                sentiment = result["label"]  # Expecting 'positive', 'neutral', or 'negative'
+                try:
+                    result = sentiment_pipeline(text_to_analyze)[0]
+                    sentiment = result["label"]  # Expected: 'positive', 'neutral', or 'negative'
+                except Exception as e:
+                    sentiment = "Error"
+                    st.error(f"Sentiment analysis failed for article: {title}. Error: {e}")
             
             results.append({
                 "Title": title,
@@ -74,6 +82,6 @@ if st.button("Fetch News and Analyze Sentiment"):
         df = pd.DataFrame(results)
         st.write(df)
         
-        # Optional: Display sentiment counts as a bar chart
+        # Display sentiment counts as a bar chart
         sentiment_counts = df['Sentiment'].value_counts()
         st.bar_chart(sentiment_counts)
