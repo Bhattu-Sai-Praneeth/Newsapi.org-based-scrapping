@@ -1,6 +1,13 @@
 streamlit
 requests
-pandas
+beautifulsoup4
+nltk
 transformers
 torch
-tabulate
+pandas
+numpy
+matplotlib
+scikit-learn
+tensorflow
+pandas-ta
+yfinance
